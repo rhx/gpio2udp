@@ -132,7 +132,11 @@ func broadcast(data: UDPData) {
     let sin = UnsafeMutableRawPointer(addr)
     let asize = MemoryLayout<sockaddr_in>.size
     if sock < 0 {
+      #if os(Linux)
+        sock = socket(PF_INET, CInt(SOCK_DGRAM.rawValue), 0)
+      #else
         sock = socket(PF_INET, SOCK_DGRAM, 0)
+      #endif
         guard sock >= 0 else { fatalError("Cannot create UDP socket: \(String(cString: strerror(errno)))") }
         var yes: CInt = 1
         withUnsafeBytes(of: &yes) {
@@ -194,5 +198,5 @@ while keepRunning {
 
 fds.filter { $0 >= 0 }.forEach { close($0) }
 
-shutdown(sock, SHUT_RDWR)
+shutdown(sock, CInt(SHUT_RDWR))
 close(sock)
