@@ -1,9 +1,4 @@
 import Foundation
-#if os(Linux)
-    import Glibc
-#else
-    import Darwin
-#endif
 
 let args = CommandLine.arguments
 let cmd = args[0]                   ///< command name
@@ -14,42 +9,27 @@ var input_gpios: UInt64 = 0         ///< input GPIO pins
 var gpio_values: UInt64 = 0         ///< bit values of the GPIO pins (1 == high)
 var fds: [CInt] = (0..<64).map { _ in -1 }  ///< GPIO file descriptors
 
-var longopts: [option] = [
-    option(name: "debug",           has_arg: 0, flag: nil, val: Int32("d".utf16.first!)),
-    option(name: "input",           has_arg: 1, flag: nil, val: Int32("i".utf16.first!)),
-    option(name: "port",            has_arg: 1, flag: nil, val: Int32("o".utf16.first!)),
-    option(name: "quiet",           has_arg: 0, flag: nil, val: Int32("q".utf16.first!)),
-    option(name: "verbose",         has_arg: 0, flag: nil, val: Int32("v".utf16.first!)),
-]
-
 fileprivate func usage() -> Never {
     print("Usage: \(cmd) <options> [gpios ...]")
     print("Options:")
-    print("  -d, --debug                print debug output")
-    print("  -i, --input=<pin>          configure and use <pin> as an input pin")
-    print("  -p, --port=<port>          broadcast to <port> instead of \(port)")
-    print("  -q, --quiet                turn off all non-critical logging output")
-    print("  -v, --verbose              increase logging verbosity")
+    print("  -d             print debug output")
+    print("  -i <pin>       configure and use <pin> as an input pin")
+    print("  -p <port>      broadcast to <port> instead of \(port)")
+    print("  -q             turn off all non-critical logging output")
+    print("  -v             increase logging verbosity")
     exit(EXIT_FAILURE)
 }
 
 
-/// Wrapper around getopt() / getopt_long_only() for Swift
+/// Wrapper around getopt() for Swift
 ///
 /// - Parameters:
 ///   - options: String containing the option characters
-///   - long: optional address of a `struct option` table for long options
-///   - index: optional index for long option continuation
 /// - Returns: the next option character, '?' in case of an error, `nil` if finished
-func get(options: String, long: UnsafePointer<option>? = nil, index: UnsafeMutablePointer<CInt>? = nil) -> Character? {
+func get(options: String) -> Character? {
     let argc = CommandLine.argc
     let argv = CommandLine.unsafeArgv
-    let ch: CInt
-    if long != nil {
-        ch = getopt_long_only(argc, argv, options, long, index)
-    } else {
-        ch = getopt(argc, argv, options)
-    }
+    let ch = getopt(argc, argv, options)
     guard ch != -1, let u = UnicodeScalar(UInt32(ch)) else { return nil }
     let c = Character(u)
     return c
