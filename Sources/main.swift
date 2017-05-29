@@ -58,8 +58,13 @@ func get(options: String) -> Character? {
 ///   - mode: "in" for input (default), "out" for output
 /// - Throws: in case the `/sys/class/gpio` sysfs entry for the given pin does not exist
 func set(pin: Int, mode: String = "in") -> Bool {
-    if !write(string: "\(pin)", to: "/sys/class/gpio/export") {
-        perror("Cannot export GPIO \(pin)")
+    let export = "/sys/class/gpio/export"
+    if !write(string: "\(pin)", to: export) {
+        if errno != EBUSY {
+            perror("Cannot export GPIO \(pin)")
+        }
+    } else {
+        sleep(1)
     }
     return write(string: mode, to: "/sys/class/gpio/gpio\(pin)/direction")
 }
