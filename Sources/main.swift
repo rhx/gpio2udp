@@ -26,7 +26,7 @@ fileprivate func usage() -> Never {
 ///   - file: name of the file to write to
 /// - Returns: `true` if successful, `false` otherwise
 func write(string: String, to file: String) -> Bool {
-    let fd = open(file, Int32(O_WRONLY | O_TRUNC), mode_t(0o777))
+    let fd = open(file, Int32(O_WRONLY), mode_t(0o777))
     guard fd >= 0 else {
         perror("Cannot open '\(file)' for writing")
         return false
@@ -58,8 +58,10 @@ func get(options: String) -> Character? {
 ///   - mode: "in" for input (default), "out" for output
 /// - Throws: in case the `/sys/class/gpio` sysfs entry for the given pin does not exist
 func set(pin: Int, mode: String = "in") -> Bool {
-    return write(string: "\(pin)", to: "/sys/class/gpio/export") &&
-           write(string: mode, to: "/sys/class/gpio/gpio\(pin)/direction")
+    if !write(string: "\(pin)", to: "/sys/class/gpio/export") {
+        perror("Cannot export GPIO \(pin)")
+    }
+    return write(string: mode, to: "/sys/class/gpio/gpio\(pin)/direction")
 }
 
 /// Get a GPIO pin value
