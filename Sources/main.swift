@@ -1,3 +1,4 @@
+#!/usr/bin/swift
 import Foundation
 
 let args = CommandLine.arguments
@@ -20,6 +21,21 @@ fileprivate func usage() -> Never {
     exit(EXIT_FAILURE)
 }
 
+/// - Parameters:
+///   - string: the string to write
+///   - file: name of the file to write to
+/// - Returns: `true` if successful, `false` otherwise
+func write(string: String, to file: String) -> Bool {
+    let fd = open(file, Int32(O_WRONLY | O_TRUNC), mode_t(0o777))
+    guard fd >= 0 else {
+        perror("Cannot open '\(file)' for writing")
+        return false
+    }
+    defer { close(fd) }
+    return string.withCString {
+        write(fd, UnsafeRawPointer($0), Int(strlen($0))) > 0
+    }
+}
 
 /// Wrapper around getopt() for Swift
 ///
@@ -41,9 +57,9 @@ func get(options: String) -> Character? {
 ///   - pin: GPIO pin number to set up
 ///   - mode: "in" for input (default), "out" for output
 /// - Throws: in case the `/sys/class/gpio` sysfs entry for the given pin does not exist
-func set(pin: Int, mode: String = "in") throws {
-    try "\(pin)".write(toFile: "/sys/class/gpio/export", atomically: false, encoding: .utf8)
-    try mode.write(toFile: "/sys/class/gpio/gpio\(pin)/direction", atomically: false, encoding: .utf8)
+func set(pin: Int, mode: String = "in") -> Bool {
+    return write(string: "\(pin)", to: "/sys/class/gpio/export") &&
+           write(string: mode, to: "/sys/class/gpio/gpio\(pin)/direction")
 }
 
 /// Get a GPIO pin value
@@ -78,9 +94,7 @@ while let option = get(options: "di:o:p:qv") {
     switch option {
     case "d": verbosity = 9
     case "i": if let gpio  = Int(String(cString: optarg)), gpio >= 0 && gpio < 64 {
-        do {
-            try set(pin: gpio, mode: "in")
-        } catch {
+        guard set(pin: gpio, mode: "in") else {
             fatalError("Cannot configure GPIO \(gpio) as input: \(String(cString: strerror(errno)))")
         }
         input_gpios |= 1 << UInt64(gpio)
