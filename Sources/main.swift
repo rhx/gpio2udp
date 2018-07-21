@@ -5,6 +5,7 @@ let args = CommandLine.arguments
 let cmd = args[0]                   ///< command name
 var verbosity = 1                   ///< verbosity level
 var port = 12121                    ///< UDP broadcast port
+var retransmission_interval = 10        ///< re-transmission interval
 var gpios = Array<Int>()            ///< GPIO pins to use
 var input_gpios: UInt64 = 0         ///< input GPIO pins
 var gpio_values: UInt64 = 0         ///< bit values of the GPIO pins (1 == high)
@@ -17,6 +18,7 @@ fileprivate func usage() -> Never {
     print("  -i <pin>       configure and use <pin> as an input pin")
     print("  -p <port>      broadcast to <port> instead of \(port)")
     print("  -q             turn off all non-critical logging output")
+    print("  -r <seconds>   re-transmit every <seconds> seconds (default: \(retransmission_interval)")
     print("  -v             increase logging verbosity")
     exit(EXIT_FAILURE)
 }
@@ -97,7 +99,7 @@ func get(pin: Int) -> Bool? {
 //
 // Parse arguments
 //
-while let option = get(options: "di:o:p:qv") {
+while let option = get(options: "di:o:p:qr:v") {
     switch option {
     case "d": verbosity = 9
     case "i": if let gpio  = Int(String(cString: optarg)), gpio >= 0 && gpio < 64 {
@@ -111,6 +113,9 @@ while let option = get(options: "di:o:p:qv") {
         port = p
     } else { usage() }
     case "q": verbosity  = 0
+    case "r": if let r = Int(String(cString: optarg)) {
+        retransmission_interval = r
+    } else { usage() }
     case "v": verbosity += 1
     default: usage()
     }
@@ -213,7 +218,7 @@ while keepRunning {
         broadcast(data: UDPData(gpios: htonll(gpio_values), mask: htonll(input_gpios)))
     }
     i += 1
-    if i >= 10 { i = 0 }    // transmit every 10 seconds
+    if i >= retransmission_interval { i = 0 }    // repeat after given seconds
     sleep(1)
 }
 
