@@ -90,7 +90,7 @@ func get(pin: Int) -> Bool? {
             perror(filename)
             return nil
         }
-        return (value & 1) != 0
+        return ($0[0] & 1) != 0
     }
 }
 
