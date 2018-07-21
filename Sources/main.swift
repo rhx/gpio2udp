@@ -18,7 +18,7 @@ fileprivate func usage() -> Never {
     print("  -i <pin>       configure and use <pin> as an input pin")
     print("  -p <port>      broadcast to <port> instead of \(port)")
     print("  -q             turn off all non-critical logging output")
-    print("  -r <seconds>   re-transmit every <seconds> seconds (default: \(retransmission_interval)")
+    print("  -r <seconds>   re-transmit every <seconds> seconds (default: \(retransmission_interval))")
     print("  -v             increase logging verbosity")
     exit(EXIT_FAILURE)
 }
