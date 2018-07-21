@@ -213,7 +213,7 @@ while keepRunning {
         broadcast(data: UDPData(gpios: htonll(gpio_values), mask: htonll(input_gpios)))
     }
     i += 1
-    if i >= 30 { i = 0 }    // transmit every 30 seconds
+    if i >= 10 { i = 0 }    // transmit every 10 seconds
     sleep(1)
 }
 
