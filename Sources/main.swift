@@ -1,11 +1,10 @@
-#!/usr/bin/swift
+#!/usr/local/bin/swift
 import Foundation
 
 let args = CommandLine.arguments
 let cmd = args[0]                   ///< command name
 var verbosity = 1                   ///< verbosity level
 var port = 12121                    ///< UDP broadcast port
-var retransmission_interval = 10        ///< re-transmission interval
 var gpios = Array<Int>()            ///< GPIO pins to use
 var input_gpios: UInt64 = 0         ///< input GPIO pins
 var gpio_values: UInt64 = 0         ///< bit values of the GPIO pins (1 == high)
@@ -18,7 +17,6 @@ fileprivate func usage() -> Never {
     print("  -i <pin>       configure and use <pin> as an input pin")
     print("  -p <port>      broadcast to <port> instead of \(port)")
     print("  -q             turn off all non-critical logging output")
-    print("  -r <seconds>   re-transmit every <seconds> seconds (default: \(retransmission_interval))")
     print("  -v             increase logging verbosity")
     exit(EXIT_FAILURE)
 }
@@ -87,19 +85,20 @@ func get(pin: Int) -> Bool? {
     let fd = fds[pin]
     var value = UInt8(0)
     if lseek(fd, 0, SEEK_SET) < 0 { perror("lseek on \(filename)") }
-    return withUnsafeMutableBytes(of: &value) {
-        guard read(fd, $0.baseAddress, 1) == 1 else {
+    guard withUnsafeMutableBytes(of: &value, { (v: UnsafeMutableRawBufferPointer) -> Bool in
+        guard read(fd, v.baseAddress, 1) == 1 else {
             perror(filename)
-            return nil
+            return false
         }
-        return ($0[0] & 1) != 0
-    }
+        return true
+    }) else { return nil }
+    return (value & 1) != 0
 }
 
 //
 // Parse arguments
 //
-while let option = get(options: "di:o:p:qr:v") {
+while let option = get(options: "di:o:p:qv") {
     switch option {
     case "d": verbosity = 9
     case "i": if let gpio  = Int(String(cString: optarg)), gpio >= 0 && gpio < 64 {
@@ -113,9 +112,6 @@ while let option = get(options: "di:o:p:qr:v") {
         port = p
     } else { usage() }
     case "q": verbosity  = 0
-    case "r": if let r = Int(String(cString: optarg)) {
-        retransmission_interval = r
-    } else { usage() }
     case "v": verbosity += 1
     default: usage()
     }
@@ -204,7 +200,7 @@ while keepRunning {
     let old = gpio_values
     for gpio in gpios {
         guard let high = get(pin: gpio) else { continue }
-        let value = 1 << UInt64(gpio)
+        let value = UInt64(1) << UInt64(gpio)
         if high { gpio_values |=  value }
         else    { gpio_values &= ~value }
         if verbosity >= 9 {
@@ -218,7 +214,7 @@ while keepRunning {
         broadcast(data: UDPData(gpios: htonll(gpio_values), mask: htonll(input_gpios)))
     }
     i += 1
-    if i >= retransmission_interval { i = 0 }    // repeat after given seconds
+    if i >= 10 { i = 0 }    // transmit every 10 seconds
     sleep(1)
 }
 
