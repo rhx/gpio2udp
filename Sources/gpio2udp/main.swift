@@ -8,6 +8,7 @@ var port = 12121                    ///< UDP broadcast port
 var gpios = Array<Int>()            ///< GPIO pins to use
 var input_gpios: UInt64 = 0         ///< input GPIO pins
 var gpio_values: UInt64 = 0         ///< bit values of the GPIO pins (1 == high)
+var period = 5                      ///< transmission period in seconds
 var fds: [CInt] = (0..<64).map { _ in -1 }  ///< GPIO file descriptors
 
 fileprivate func usage() -> Never {
@@ -17,6 +18,7 @@ fileprivate func usage() -> Never {
     print("  -i <pin>       configure and use <pin> as an input pin")
     print("  -p <port>      broadcast to <port> instead of \(port)")
     print("  -q             turn off all non-critical logging output")
+    print("  -t <period>    retransmit every <period> seconds (default: \(period)s)")
     print("  -v             increase logging verbosity")
     exit(EXIT_FAILURE)
 }
@@ -112,6 +114,9 @@ while let option = get(options: "di:o:p:qv") {
         port = p
     } else { usage() }
     case "q": verbosity  = 0
+    case "t": if let t = Int(String(cString: optarg)) {
+        period = t
+    } else { usage() }
     case "v": verbosity += 1
     default: usage()
     }
@@ -214,7 +219,7 @@ while keepRunning {
         broadcast(data: UDPData(gpios: htonll(gpio_values), mask: htonll(input_gpios)))
     }
     i += 1
-    if i >= 5 { i = 0 }    // transmit every 5 seconds
+    if i >= period { i = 0 }    // transmit every <period> seconds
     sleep(1)
 }
 
