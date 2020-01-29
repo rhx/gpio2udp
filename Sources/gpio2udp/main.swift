@@ -100,7 +100,7 @@ func get(pin: Int) -> Bool? {
 //
 // Parse arguments
 //
-while let option = get(options: "di:o:p:qv") {
+while let option = get(options: "di:o:p:qt:v") {
     switch option {
     case "d": verbosity = 9
     case "i": if let gpio  = Int(String(cString: optarg)), gpio >= 0 && gpio < 64 {
