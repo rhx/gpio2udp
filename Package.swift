@@ -1,7 +1,8 @@
-// swift-tools-version:3.1
+// swift-tools-version:5.0
 
 import PackageDescription
 
 let package = Package(
-    name: "gpio2udp"
+    name: "gpio2udp",
+    targets: [.target(name: "gpio2udp", dependencies: [])]
 )

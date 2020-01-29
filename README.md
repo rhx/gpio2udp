@@ -34,7 +34,7 @@ gpio2udp -p 12345 4 17 22 27
 ## Prerequisites
 
  * **Linux**: the GPIO pins are accessed via `/sys/class/gpio`.
- * **Swift 3**: you need to have a working Swift compiler, including the Swift package manager.
+ * **Swift 5**: you need to have a working Swift compiler, including the Swift package manager.
  
 ## Cross-Compiling
 
